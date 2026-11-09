@@ -10,16 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      ministack:
-        image: ministackorg/ministack:latest
-        ports:
-          - 4566:4566
-        options: >-
-          --health-cmd="curl -f http://localhost:4566/_localstack/health || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
 
     steps:
       - name: Checkout Repository
@@ -34,6 +24,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest boto3
+
+      - name: Start MiniStack via Docker Compose
+        run: docker compose up -d ministack
+
+      - name: Wait for MiniStack to be ready
+        run: |
+          echo "Aguardando MiniStack responder na porta 4566..."
+          until curl -s http://localhost:4566/_localstack/health | grep -q "running" || nc -z localhost 4566; do
+            sleep 1
+          done
 
       - name: Run Integration Tests
         run: |
